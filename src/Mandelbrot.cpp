@@ -1,10 +1,7 @@
 #include "Mandelbrot.h"
 #include <cmath>
 #include <complex>
-#include <raylib.h>
 
-constexpr int screenWidth = 800;
-constexpr int screenHeight = 600;
 Color Mandelbrot::getPixelColor(int x, int y) const {
   return pixelColor(iterations(x, y));
 }
@@ -58,23 +55,3 @@ Color Mandelbrot::pixelColor(int i) const {
 
 int Mandelbrot::imgWidth() { return m_imgWidth; }
 int Mandelbrot::imgHeight() { return m_imgHeight; }
-
-int main() {
-
-  InitWindow(screenWidth, screenHeight, "Mandelbrot");
-
-  Mandelbrot mandelbrot;
-
-  while (!WindowShouldClose()) {
-
-    BeginDrawing();
-    ClearBackground(BLACK);
-    for (int i = 0; i < mandelbrot.imgWidth(); i++) {
-      for (int j = 0; j < mandelbrot.imgHeight(); j++) {
-        DrawPixel(i, j, mandelbrot.getPixelColor(i, j));
-      }
-    }
-    DrawFPS(20, 20);
-    EndDrawing();
-  }
-}

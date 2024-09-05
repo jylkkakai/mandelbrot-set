@@ -1,6 +1,7 @@
 #include "Mandelbrot.h"
 #include <cmath>
 #include <complex>
+#include <iostream>
 
 Color Mandelbrot::getPixelColor(int x, int y) const {
   return pixelColor(iterations(x, y));
@@ -8,9 +9,9 @@ Color Mandelbrot::getPixelColor(int x, int y) const {
 
 int Mandelbrot::iterations(int x, int y) const {
 
-  double dx = (m_right - m_left) / (m_imgWidth - 1);
-  double dy = (m_bottom - m_top) / (m_imgHeight - 1);
-  std::complex<double> c(-2.0 + x * dx, -1.25 + y * dy);
+  double dx = (m_right - m_left) / (m_diagWidth - 1);
+  double dy = (m_bottom - m_top) / (m_diagHeight - 1);
+  std::complex<double> c(m_left + x * dx, m_top + y * dy);
   std::complex<double> z;
   int m_iterLimit = 100;
   z = c;
@@ -53,5 +54,14 @@ Color Mandelbrot::pixelColor(int i) const {
   return color;
 }
 
-int Mandelbrot::imgWidth() { return m_imgWidth; }
-int Mandelbrot::imgHeight() { return m_imgHeight; }
+void Mandelbrot::moveDiagram() {
+  Vector2 delta = GetMouseDelta();
+
+  m_left -= delta.x * m_dx;
+  m_top -= delta.y * m_dy;
+  m_right -= delta.x * m_dx;
+  m_bottom -= delta.y * m_dy;
+}
+
+int Mandelbrot::diagWidth() { return m_diagWidth; }
+int Mandelbrot::diagHeight() { return m_diagHeight; }

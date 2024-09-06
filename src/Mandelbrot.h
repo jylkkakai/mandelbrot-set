@@ -8,6 +8,7 @@ public:
   int diagWidth();
   int diagHeight();
   void moveDiagram();
+  void zoom(int direction);
 
 private:
   const int m_iterLimit = 100;
@@ -21,6 +22,7 @@ private:
   double m_dy = (m_bottom - m_top) / (m_diagHeight - 1);
 
   int iterations(int x, int y) const;
+  int iterations_opt(int x, int y) const;
   Color pixelColor(int i) const;
 };
 

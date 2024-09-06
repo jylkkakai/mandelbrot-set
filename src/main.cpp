@@ -1,4 +1,5 @@
 #include "Mandelbrot.h"
+#include <iostream>
 #include <raylib.h>
 
 constexpr int screenWidth = 800;
@@ -21,6 +22,10 @@ int main() {
     }
     if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
       mandelbrot.moveDiagram();
+    }
+    float move = GetMouseWheelMove();
+    if (move != 0) {
+      mandelbrot.zoom(int(move));
     }
     DrawFPS(20, 20);
     EndDrawing();

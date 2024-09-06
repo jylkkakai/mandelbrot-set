@@ -4,22 +4,46 @@
 #include <iostream>
 
 Color Mandelbrot::getPixelColor(int x, int y) const {
-  return pixelColor(iterations(x, y));
+  return pixelColor(iterations_opt(x, y));
 }
 
 int Mandelbrot::iterations(int x, int y) const {
 
-  double dx = (m_right - m_left) / (m_diagWidth - 1);
-  double dy = (m_bottom - m_top) / (m_diagHeight - 1);
-  std::complex<double> c(m_left + x * dx, m_top + y * dy);
+  std::complex<double> c(m_left + x * m_dx, m_top + y * m_dy);
   std::complex<double> z;
   int m_iterLimit = 100;
   z = c;
   Color color = WHITE;
   int i = 0;
-  while (i < m_iterLimit && std::abs(z) < 2.0) {
+  while (i < m_iterLimit && std::abs(z) < 4.0) {
     z = pow(z, 2) + c;
     i++;
+  }
+  return i;
+}
+
+int Mandelbrot::iterations_opt(int x, int y) const {
+
+  double cr = m_left + x * m_dx;
+  double ci = m_top + y * m_dy;
+  int m_iterLimit = 100;
+  double zr = cr;
+  double zi = ci;
+  Color color = WHITE;
+  int i = 0;
+  double zrs = zr * zr;
+  double zis = zi * zi;
+  double zsqrt = sqrt(zrs + zis);
+  while (i < m_iterLimit && zsqrt < 4.0) {
+    double zrt = zrs - zis;
+    double zit = 2 * zr * zi;
+    zr = zrt + cr;
+    zi = zit + ci;
+    i++;
+    zrs = zr * zr;
+    zis = zi * zi;
+
+    zsqrt = sqrt(zrs + zis);
   }
   return i;
 }
@@ -63,5 +87,16 @@ void Mandelbrot::moveDiagram() {
   m_bottom -= delta.y * m_dy;
 }
 
+void Mandelbrot::zoom(int direction) {
+
+  Vector2 mousePos = GetMousePosition();
+  m_left += mousePos.x * 0.1 * m_dx * direction;
+  m_top += mousePos.y * 0.1 * m_dy * direction;
+  m_right -= (m_diagWidth - mousePos.x) * 0.1 * m_dx * direction;
+  m_bottom -= (m_diagHeight - mousePos.y) * 0.1 * m_dy * direction;
+
+  m_dx = (m_right - m_left) / (m_diagWidth - 1);
+  m_dy = (m_bottom - m_top) / (m_diagHeight - 1);
+}
 int Mandelbrot::diagWidth() { return m_diagWidth; }
 int Mandelbrot::diagHeight() { return m_diagHeight; }

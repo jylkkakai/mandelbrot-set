@@ -2,50 +2,124 @@
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include <omp.h>
+#include <raylib.h>
+#include <vector>
 
-Color Mandelbrot::getPixelColor(int x, int y) const {
-  return pixelColor(iterations_opt(x, y));
+void Mandelbrot::draw() {
+
+  switch (m_mode) {
+  case Mode::simple:
+    simple();
+    break;
+  case Mode::simple_opt:
+    simple_opt();
+    break;
+  case Mode::openmp:
+    openmp();
+    break;
+  default:
+    simple();
+  }
+  drawColorArr();
 }
 
-int Mandelbrot::iterations(int x, int y) const {
+void Mandelbrot::simple() {
 
-  std::complex<double> c(m_left + x * m_dx, m_top + y * m_dy);
+  std::complex<double> c;
   std::complex<double> z;
-  int m_iterLimit = 100;
-  z = c;
-  Color color = WHITE;
-  int i = 0;
-  while (i < m_iterLimit && std::abs(z) < 4.0) {
-    z = pow(z, 2) + c;
-    i++;
+  int idx;
+
+  for (int i = 0; i < m_diagWidth; i++) {
+    for (int j = 0; j < m_diagHeight; j++) {
+
+      idx = 0;
+      c = {m_left + i * m_dx, m_top + j * m_dy};
+      z = c;
+
+      while (idx < m_iterLimit && std::abs(z) < 4.0) {
+        z = pow(z, 2) + c;
+        idx++;
+      }
+      m_colorArr[j][i] = pixelColor(idx);
+    }
   }
-  return i;
 }
 
-int Mandelbrot::iterations_opt(int x, int y) const {
+void Mandelbrot::simple_opt() {
 
-  double cr = m_left + x * m_dx;
-  double ci = m_top + y * m_dy;
-  int m_iterLimit = 100;
-  double zr = cr;
-  double zi = ci;
-  Color color = WHITE;
-  int i = 0;
-  double zrs = zr * zr;
-  double zis = zi * zi;
-  double zsqrt = sqrt(zrs + zis);
-  while (i < m_iterLimit && zsqrt < 4.0) {
-    double zrt = zrs - zis;
-    double zit = 2 * zr * zi;
-    zr = zrt + cr;
-    zi = zit + ci;
-    i++;
-    zrs = zr * zr;
-    zis = zi * zi;
+  int idx;
+  for (int i = 0; i < m_diagWidth; i++) {
+    for (int j = 0; j < m_diagHeight; j++) {
 
-    zsqrt = sqrt(zrs + zis);
+      idx = 0;
+      double cr = m_left + i * m_dx;
+      double ci = m_top + j * m_dy;
+      double zr = cr;
+      double zi = ci;
+      double zrs = zr * zr;
+      double zis = zi * zi;
+      double zsqrt = sqrt(zrs + zis);
+
+      while (idx < m_iterLimit && zsqrt < 4.0) {
+
+        double zrt = zrs - zis;
+        double zit = 2 * zr * zi;
+        zr = zrt + cr;
+        zi = zit + ci;
+        zrs = zr * zr;
+        zis = zi * zi;
+
+        zsqrt = sqrt(zrs + zis);
+        idx++;
+      }
+      m_colorArr[j][i] = pixelColor(idx);
+    }
   }
-  return i;
+}
+
+void Mandelbrot::openmp() {
+
+#pragma omp parallel for num_threads(100)
+  for (int i = 0; i < m_diagWidth; i++) {
+    for (int j = 0; j < m_diagHeight; j++) {
+
+      int idx = 0;
+      double cr = m_left + i * m_dx;
+      double ci = m_top + j * m_dy;
+      double zr = cr;
+      double zi = ci;
+      double zrs = zr * zr;
+      double zis = zi * zi;
+      double zsqrt = sqrt(zrs + zis);
+
+      while (idx < m_iterLimit && zsqrt < 4.0) {
+
+        double zrt = zrs - zis;
+        double zit = 2 * zr * zi;
+        zr = zrt + cr;
+        zi = zit + ci;
+        zrs = zr * zr;
+        zis = zi * zi;
+
+        zsqrt = sqrt(zrs + zis);
+        idx++;
+      }
+      m_colorArr[j][i] = pixelColor(idx);
+    }
+  }
+}
+
+void Mandelbrot::drawColorArr() {
+
+  Image img = {.data = &m_colorArr,
+               .width = m_diagWidth,
+               .height = m_diagHeight,
+               .mipmaps = 1,
+               .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8};
+
+  Texture2D texture = LoadTextureFromImage(img);
+  DrawTexture(texture, 0, 0, WHITE);
 }
 
 Color Mandelbrot::pixelColor(int i) const {
@@ -98,5 +172,19 @@ void Mandelbrot::zoom(int direction) {
   m_dx = (m_right - m_left) / (m_diagWidth - 1);
   m_dy = (m_bottom - m_top) / (m_diagHeight - 1);
 }
-int Mandelbrot::diagWidth() { return m_diagWidth; }
-int Mandelbrot::diagHeight() { return m_diagHeight; }
+
+void Mandelbrot::setMode(int key) {
+
+  switch (key) {
+
+  case KEY_ONE:
+    m_mode = Mode::simple;
+    break;
+  case KEY_TWO:
+    m_mode = Mode::simple_opt;
+    break;
+  case KEY_THREE:
+    m_mode = Mode::openmp;
+    break;
+  }
+}

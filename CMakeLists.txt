@@ -1,6 +1,19 @@
 cmake_minimum_required(VERSION 3.11) # FetchContent is available in 3.11+
 project(mandlebrot)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# set(DCMAKE_BUILD_TYPE Debug
+  set(CMAKE_BUILD_TYPE Release)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -23,11 +36,19 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
   endif()
 endif()
 
+
 # Our Project
 
 add_executable(${PROJECT_NAME} src/main.cpp src/Mandelbrot.cpp)
+
 #set(raylib_VERBOSE 1)
-target_link_libraries(${PROJECT_NAME} raylib)
+
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX raylib)
+else()
+  target_link_libraries(${PROJECT_NAME} raylib)
+endif()
 
 # Web Configurations
 if (${PLATFORM} STREQUAL "Web")

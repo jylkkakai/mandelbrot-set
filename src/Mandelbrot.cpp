@@ -1,10 +1,10 @@
 #include "Mandelbrot.h"
 #include <cmath>
 #include <complex>
+#include <immintrin.h>
 #include <iostream>
 #include <omp.h>
 #include <raylib.h>
-#include <vector>
 
 void Mandelbrot::draw() {
 
@@ -17,6 +17,9 @@ void Mandelbrot::draw() {
     break;
   case Mode::openmp:
     openmp();
+    break;
+  case Mode::avx:
+    avx();
     break;
   default:
     simple();
@@ -110,6 +113,41 @@ void Mandelbrot::openmp() {
   }
 }
 
+void Mandelbrot::avx() {
+
+  int idx;
+  for (int i = 0; i < m_diagWidth; i++) {
+    for (int j = 0; j < m_diagHeight; j++) {
+
+      idx = 0;
+      double cr = m_left + i * m_dx;
+      double ci = m_top + j * m_dy;
+      __m128d c = _mm_setr_pd(cr, ci);
+      __m128d z = c;
+      __m128d zs = _mm_mul_pd(c, c);
+      __m128d za = _mm_hadd_pd(zs, zs);
+      __m128d zsqrt = _mm_sqrt_pd(za);
+
+      while (idx < m_iterLimit && zsqrt[0] < 4.0) {
+
+        __m128d z1 = _mm_hsub_pd(zs, zs);
+        __m128d z2 = _mm_setr_pd(z[1], z[0]);
+        z2 = _mm_mul_pd(z, z2);
+        z2 = _mm_hadd_pd(z2, z2);
+        z1[1] = z2[0];
+        z = _mm_add_pd(z1, c);
+
+        zs = _mm_mul_pd(z, z);
+        za = _mm_hadd_pd(zs, zs);
+        zsqrt = _mm_sqrt_pd(za);
+
+        idx++;
+      }
+      m_colorArr[j][i] = pixelColor(idx);
+    }
+  }
+}
+
 void Mandelbrot::drawColorArr() {
 
   Image img = {.data = &m_colorArr,
@@ -185,6 +223,9 @@ void Mandelbrot::setMode(int key) {
     break;
   case KEY_THREE:
     m_mode = Mode::openmp;
+    break;
+  case KEY_FOUR:
+    m_mode = Mode::avx;
     break;
   }
 }

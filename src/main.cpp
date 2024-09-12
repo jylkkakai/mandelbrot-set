@@ -9,6 +9,7 @@ constexpr int screenHeight = 600;
 
 int main() {
 
+  SetTraceLogLevel(LOG_NONE);
   InitWindow(screenWidth, screenHeight, "Mandelbrot");
 
   Mandelbrot mandelbrot;

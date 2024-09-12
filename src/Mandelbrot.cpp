@@ -115,35 +115,67 @@ void Mandelbrot::openmp() {
 
 void Mandelbrot::avx() {
 
-  int idx;
-  for (int i = 0; i < m_diagWidth; i++) {
-    for (int j = 0; j < m_diagHeight; j++) {
+  int idx0;
+  int idx1;
+  __m128d c = _mm_setr_pd(m_left, m_top);
+  __m128d a = _mm_setr_pd(m_dx, m_dy);
 
-      idx = 0;
-      double cr = m_left + i * m_dx;
-      double ci = m_top + j * m_dy;
-      __m128d c = _mm_setr_pd(cr, ci);
-      __m128d z = c;
-      __m128d zs = _mm_mul_pd(c, c);
-      __m128d za = _mm_hadd_pd(zs, zs);
+#pragma omp parallel for num_threads(100)
+  for (auto i = 0; i < m_diagWidth; i++) {
+    for (auto j = 0; j < m_diagHeight; j += 2) {
+
+      idx0 = 0;
+      idx1 = 0;
+
+      // double cr = m_left + i * m_dx;
+      // double ci = m_top + j * m_dy;
+      __m128d b0 = _mm_setr_pd(i, j);
+      __m128d b1 = _mm_setr_pd(i, j + 1);
+      //
+      __m128d c0 = _mm_fmadd_pd(a, b0, c);
+      __m128d c1 = _mm_fmadd_pd(a, b1, c);
+      // __m128d c0 = _mm_setr_pd(m_left + i * m_dx, m_top + j * m_dy);
+      // __m128d c1 = _mm_setr_pd(m_left + i * m_dx, m_top + (j + 1) * m_dy);
+      __m128d z0 = c0;
+      __m128d z1 = c1;
+      __m128d zs0 = _mm_mul_pd(c0, c0);
+      __m128d zs1 = _mm_mul_pd(c1, c1);
+      __m128d za = _mm_hadd_pd(zs0, zs1);
       __m128d zsqrt = _mm_sqrt_pd(za);
 
-      while (idx < m_iterLimit && zsqrt[0] < 4.0) {
+      while ((idx0 < m_iterLimit && idx1 < m_iterLimit) &&
+             (zsqrt[0] < 4.0 || zsqrt[1] < 4.0)) {
 
-        __m128d z1 = _mm_hsub_pd(zs, zs);
-        __m128d z2 = _mm_setr_pd(z[1], z[0]);
-        z2 = _mm_mul_pd(z, z2);
-        z2 = _mm_hadd_pd(z2, z2);
-        z1[1] = z2[0];
-        z = _mm_add_pd(z1, c);
+        __m128d zr = _mm_hsub_pd(zs0, zs1);
+        // __m128d zr1 = _mm_hsub_pd(zs1, zs1);
+        __m128d zi0 = _mm_setr_pd(z0[1], z0[0]);
+        __m128d zi1 = _mm_setr_pd(z1[1], z1[0]);
+        zi0 = _mm_mul_pd(z0, zi0);
+        // zi0 = _mm_hadd_pd(zi0, zi0);
+        zi1 = _mm_mul_pd(z1, zi1);
+        __m128d zi = _mm_hadd_pd(zi0, zi1);
 
-        zs = _mm_mul_pd(z, z);
-        za = _mm_hadd_pd(zs, zs);
+        z0 = _mm_setr_pd(zr[0], zi[0]);
+        z1 = _mm_setr_pd(zr[1], zi[1]);
+
+        // zr[1] = zi[0];
+        z0 = _mm_add_pd(z0, c0);
+        z1 = _mm_add_pd(z1, c1);
+
+        zs0 = _mm_mul_pd(z0, z0);
+        zs1 = _mm_mul_pd(z1, z1);
+        // zs = _mm_mul_pd(z, z);
+        za = _mm_hadd_pd(zs0, zs1);
+        if (zsqrt[0] < 4)
+          idx0++;
+        if (zsqrt[1] < 4)
+          idx1++;
         zsqrt = _mm_sqrt_pd(za);
-
-        idx++;
       }
-      m_colorArr[j][i] = pixelColor(idx);
+      m_colorArr[j][i] = pixelColor(idx0);
+      m_colorArr[j + 1][i] = pixelColor(idx1);
+      // if (idx1 > 0 && i > 200)
+      //   std::cout << idx1 << std::endl;
     }
   }
 }

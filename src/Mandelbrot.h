@@ -7,7 +7,8 @@ enum class Mode {
   simple,
   simple_opt,
   openmp,
-  avx
+  avx128,
+  avx256
 };
 
 class Mandelbrot {
@@ -34,7 +35,8 @@ private:
   void simple();
   void simple_opt();
   void openmp();
-  void avx();
+  void avx128();
+  void avx256();
   void drawColorArr();
 };
 

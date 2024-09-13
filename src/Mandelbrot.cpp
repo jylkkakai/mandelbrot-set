@@ -18,8 +18,11 @@ void Mandelbrot::draw() {
   case Mode::openmp:
     openmp();
     break;
-  case Mode::avx:
-    avx();
+  case Mode::avx128:
+    avx128();
+    break;
+  case Mode::avx256:
+    avx256();
     break;
   default:
     simple();
@@ -113,7 +116,7 @@ void Mandelbrot::openmp() {
   }
 }
 
-void Mandelbrot::avx() {
+void Mandelbrot::avx128() {
 
   int idx0;
   int idx1;
@@ -176,6 +179,127 @@ void Mandelbrot::avx() {
       m_colorArr[j + 1][i] = pixelColor(idx1);
       // if (idx1 > 0 && i > 200)
       //   std::cout << idx1 << std::endl;
+    }
+  }
+}
+
+// void Mandelbrot::avx128() {
+//
+//   int idx0;
+//   int idx1;
+//   __m128d left = _mm_setr_pd(m_left, m_left);
+//   __m128d top = _mm_setr_pd(m_top, m_top);
+//   __m128d dx = _mm_setr_pd(m_dx, m_dx);
+//   __m128d dy = _mm_setr_pd(m_dy, m_dy);
+//   // __m128d x = _mm_setr_pd(1, 1, 1, 1);
+//   // __m128d y = _mm_setr_pd(1, 1 + 1, 1 + 2, 1 + 3);
+//
+//   for (auto i = 0; i < m_diagWidth; i++) {
+//     for (auto j = 0; j < m_diagHeight; j += 2) {
+//
+//       idx0 = 0;
+//       idx1 = 0;
+//
+//       __m128d x = _mm_setr_pd(i, i);
+//       __m128d y = _mm_setr_pd(j, j + 1);
+//       __m128d cr = _mm_fmadd_pd(x, dx, left);
+//       __m128d ci = _mm_fmadd_pd(y, dy, top);
+//       __m128d zr = cr;
+//       __m128d zi = ci;
+//       __m128d zrs = _mm_mul_pd(zr, zr);
+//       __m128d zis = _mm_mul_pd(zi, zi);
+//       __m128d za = _mm_add_pd(zrs, zis);
+//       __m128d zsqrt = _mm_sqrt_pd(za);
+//
+//       while ((idx0 < m_iterLimit && idx1 < m_iterLimit) &&
+//              (zsqrt[0] < 4.0 || zsqrt[1] < 4.0)) {
+//
+//         __m128d zrn = _mm_sub_pd(zrs, zis);
+//         __m128d zin = _mm_mul_pd(zr, zi);
+//         zin = _mm_add_pd(zin, zin);
+//
+//         zr = _mm_add_pd(zrn, cr);
+//         zi = _mm_add_pd(zin, ci);
+//         zrs = _mm_mul_pd(zr, zr);
+//         zis = _mm_mul_pd(zi, zi);
+//         // std::cout << zis0 << ' '
+//         //           << zis[0] /*<< ' ' << d[2] << ' ' << d[3] */ <<
+//         std::endl; if (zsqrt[0] < 4)
+//           idx0++;
+//         if (zsqrt[1] < 4)
+//           idx1++;
+//         za = _mm_add_pd(zrs, zis);
+//         zsqrt = _mm_sqrt_pd(za);
+//       }
+//       m_colorArr[j][i] = pixelColor(idx0);
+//       m_colorArr[j + 1][i] = pixelColor(idx1);
+//     }
+//   }
+// }
+
+void Mandelbrot::avx256() {
+
+  int idx0;
+  int idx1;
+  int idx2;
+  int idx3;
+  __m256d left = _mm256_setr_pd(m_left, m_left, m_left, m_left);
+  __m256d top = _mm256_setr_pd(m_top, m_top, m_top, m_top);
+  __m256d dx = _mm256_setr_pd(m_dx, m_dx, m_dx, m_dx);
+  __m256d dy = _mm256_setr_pd(m_dy, m_dy, m_dy, m_dy);
+  // __m256d x = _mm256_setr_pd(1, 1, 1, 1);
+  // __m256d y = _mm256_setr_pd(1, 1 + 1, 1 + 2, 1 + 3);
+
+  for (auto i = 0; i < m_diagWidth; i++) {
+    for (auto j = 0; j < m_diagHeight; j += 4) {
+
+      idx0 = 0;
+      idx1 = 0;
+      idx2 = 0;
+      idx3 = 0;
+
+      __m256d x = _mm256_setr_pd(i, i, i, i);
+      __m256d y = _mm256_setr_pd(j, j + 1, j + 2, j + 3);
+      __m256d cr = _mm256_fmadd_pd(x, dx, left);
+      __m256d ci = _mm256_fmadd_pd(y, dy, top);
+      __m256d zr = cr;
+      __m256d zi = ci;
+      __m256d zrs = _mm256_mul_pd(zr, zr);
+      __m256d zis = _mm256_mul_pd(zi, zi);
+      __m256d za = _mm256_add_pd(zrs, zis);
+      __m256d zsqrt = _mm256_sqrt_pd(za);
+
+      while ((idx0 < m_iterLimit && idx1 < m_iterLimit && idx2 < m_iterLimit &&
+              idx3 < m_iterLimit) &&
+             (zsqrt[0] < 4.0 || zsqrt[1] < 4.0 || zsqrt[2] < 4.0 ||
+              zsqrt[3] < 4.0)) {
+
+        __m256d zrn = _mm256_sub_pd(zrs, zis);
+        __m256d zin = _mm256_mul_pd(zr, zi);
+        zin = _mm256_add_pd(zin, zin);
+
+        zr = _mm256_add_pd(zrn, cr);
+        zi = _mm256_add_pd(zin, ci);
+        zrs = _mm256_mul_pd(zr, zr);
+        zis = _mm256_mul_pd(zi, zi);
+        // std::cout << zis0 << ' '
+        //           << zis[0] /*<< ' ' << d[2] << ' ' << d[3] */ << std::endl;
+        if (zsqrt[0] < 4)
+          idx0++;
+        if (zsqrt[1] < 4)
+          idx1++;
+        if (zsqrt[2] < 4)
+          idx2++;
+        if (zsqrt[3] < 4)
+          idx3++;
+        // idx0++;
+        za = _mm256_add_pd(zrs, zis);
+        zsqrt = _mm256_sqrt_pd(za);
+      }
+      m_colorArr[j][i] = pixelColor(idx0);
+      m_colorArr[j + 1][i] = pixelColor(idx1);
+      m_colorArr[j + 2][i] = pixelColor(idx2);
+      m_colorArr[j + 3][i] = pixelColor(idx3);
     }
   }
 }
@@ -257,7 +381,13 @@ void Mandelbrot::setMode(int key) {
     m_mode = Mode::openmp;
     break;
   case KEY_FOUR:
-    m_mode = Mode::avx;
+    m_mode = Mode::avx128;
+    break;
+  case KEY_FIVE:
+    m_mode = Mode::avx256;
+    break;
+  default:
+    m_mode = Mode::simple;
     break;
   }
 }
